@@ -1,4 +1,4 @@
-function world_coord_rt = rotate_translate(world_coord, alpha, beta, gamma, tx, ty, tz)
+function [world_coord_rt, rot_mat, t_mat] = rotate_translate(world_coord, alpha, beta, gamma, tx, ty, tz)
     % Rotation and Translation matrix
     rot_x = [1 0 0;0 cos(alpha) -sin(alpha);0 sin(alpha) cos(alpha)];
     rot_y = [cos(beta) 0 sin(beta);0 1 0;-sin(beta) 0 cos(beta)];
