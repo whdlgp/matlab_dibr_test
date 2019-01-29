@@ -74,10 +74,19 @@ PSNR_forward = 10*log10((255^2)/MSR_forward);
 PSNR_morpho  = 10*log10((255^2)/MSR_morpho);
 PSNR_median = 10*log10((255^2)/MSR_median);
 
+% SSIM
+SSIM_forward = ssim(im_another_point, im2);
+SSIM_morpho = ssim(im_another_point_inverse_morpho, im2);
+SSIM_median = ssim(im_another_point_inverse_median, im2);
+
 disp("PSNR result");
 disp(["Forward mapping: " num2str(PSNR_forward)]);
 disp(["Inverse mapping(morphorogical filter): " num2str(PSNR_morpho)]);
 disp(["Inverse mapping(median filter): " num2str(PSNR_median)]);
+disp("SSIM result");
+disp(["Forward mapping: " num2str(SSIM_forward)]);
+disp(["Inverse mapping(morphorogical filter): " num2str(SSIM_morpho)]);
+disp(["Inverse mapping(median filter): " num2str(SSIM_median)]);
 
 % Test stereo show
 figure(1);
