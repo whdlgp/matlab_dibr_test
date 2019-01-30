@@ -30,23 +30,23 @@ world_coord_right = d_pixel2world(depth_right, fx, fy, ox, oy);
 
 % Rotate and translate with R|T matrix
 alpha = 0;%deg2rad(10);
-beta = deg2rad(10);
+beta = 0;%deg2rad(5);
 gamma = 0;
-tx = 400;
+tx = 0;
 ty = 0;
 tz = 0;
 
 alpha_left = alpha;
 beta_left = beta;
 gamma_left = gamma;
-tx_left = baseline + tx;
+tx_left = baseline/2 + tx;
 ty_left = 0 + ty;
 tz_left = 0 + tz;
 
 alpha_right = alpha;
 beta_right = beta;
 gamma_right = gamma;
-tx_right = 0 + tx;
+tx_right = -baseline/2 + tx;
 ty_right = 0 + ty;
 tz_right = 0 + tz;
 [world_coord_rt_left, rot_mat_left, t_mat_left] = rotate_translate(world_coord_left, alpha_left, beta_left, gamma_left, tx_left, ty_left, tz_left);
@@ -96,6 +96,29 @@ im_another_point_inverse_median_left = render_inverse_mapping(world_coord_rt_rev
 
 im_another_point_inverse_morpho_right = render_inverse_mapping(world_coord_rt_reverse_morpho_right, im2, fx, fy, ox, oy);
 im_another_point_inverse_median_right = render_inverse_mapping(world_coord_rt_reverse_median_right, im2, fx, fy, ox, oy);
+
+% Find occluded area
+occ_morpho_left = depth_another_point_erod2_left <= 10;
+occ_morpho_right = depth_another_point_erod2_right <= 10;
+occ_median_left = depth_another_point_median_left <= 10;
+occ_median_right = depth_another_point_median_right <= 10;
+
+% alpha blending
+t_l = [0, 0, 0]';
+t_r = [baseline, 0, 0]';
+t_virtue = [tx_left, ty_left, tz_left]';
+alpha = norm(t_virtue - t_l)/(norm(t_virtue - t_l)+norm(t_virtue - t_r));
+
+blended_image_morpho = alpha_blending(im_another_point_inverse_morpho_left...
+                               , im_another_point_inverse_morpho_right...
+                               , occ_morpho_left...
+                               , occ_morpho_right...
+                               , alpha);
+blended_image_median = alpha_blending(im_another_point_inverse_median_left...
+                               , im_another_point_inverse_median_right...
+                               , occ_median_left...
+                               , occ_median_right...
+                               , alpha);
 
 quality_check = 0;
 if quality_check == 1
@@ -194,3 +217,21 @@ subplot(1, 2, 1);
 imshow(uint8(round(rescale(depth_another_point_median_left)*255)));
 subplot(1, 2, 2);
 imshow(uint8(round(rescale(depth_another_point_median_right)*255)));
+
+figure(13);
+subplot(1, 2, 1);
+imshow(occ_morpho_left);
+subplot(1, 2, 2);
+imshow(occ_morpho_right);
+
+figure(14);
+subplot(1, 2, 1);
+imshow(occ_median_left);
+subplot(1, 2, 2);
+imshow(occ_median_right);
+
+figure(15)
+subplot(1, 2, 1);
+imshow(blended_image_morpho);
+subplot(1, 2, 2);
+imshow(blended_image_median);
