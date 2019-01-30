@@ -25,8 +25,15 @@ function [im_another_point,depth_another_point] = d_world2pixel(world_coord, ref
            && depth_expected(2, idx) > 0 ...
            && depth_expected(1, idx) <= width...
            && depth_expected(2, idx) <= height
-        im_another_point(depth_expected(2, idx), depth_expected(1, idx), :) = ref_image(im1_cols, im1_rows, :);
-        depth_another_point(depth_expected(2, idx), depth_expected(1, idx)) = depth_expected(3, idx);
+            if depth_another_point(depth_expected(2, idx), depth_expected(1, idx)) == 0
+                im_another_point(depth_expected(2, idx), depth_expected(1, idx), :) = ref_image(im1_cols, im1_rows, :);
+                depth_another_point(depth_expected(2, idx), depth_expected(1, idx)) = depth_expected(3, idx);
+            else
+                if depth_another_point(depth_expected(2, idx), depth_expected(1, idx)) > depth_expected(3, idx)
+                    im_another_point(depth_expected(2, idx), depth_expected(1, idx), :) = ref_image(im1_cols, im1_rows, :);
+                    depth_another_point(depth_expected(2, idx), depth_expected(1, idx)) = depth_expected(3, idx);
+                end
+            end
         end
     end
 end
