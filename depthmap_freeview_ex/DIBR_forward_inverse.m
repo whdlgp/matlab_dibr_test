@@ -104,10 +104,10 @@ occ_median_left = depth_another_point_median_left <= 10;
 occ_median_right = depth_another_point_median_right <= 10;
 
 % Expend(matting) occluded area
-occ_morpho_left_matted = imdilate(occ_morpho_left, [1, 0, 0]);
-occ_morpho_right_matted = imdilate(occ_morpho_right, [0, 0, 1]);
-occ_median_left_matted = imdilate(occ_median_left, [1, 0, 0]);
-occ_median_right_matted = imdilate(occ_median_right, [0, 0, 1]);
+occ_morpho_left_matted = imdilate(occ_morpho_left, [1, 1, 0]);
+occ_morpho_right_matted = imdilate(occ_morpho_right, [0, 1, 1]);
+occ_median_left_matted = imdilate(occ_median_left, [1, 1, 0]);
+occ_median_right_matted = imdilate(occ_median_right, [0, 1, 1]);
 
 % alpha blending
 t_l = [0, 0, 0]';
@@ -241,3 +241,17 @@ subplot(1, 2, 1);
 imshow(blended_image_morpho);
 subplot(1, 2, 2);
 imshow(blended_image_median);
+
+figure(16)
+subplot(1, 2, 1);
+diff = occ_morpho_left_matted - occ_morpho_left;
+tmp = uint8(zeros(height, width, 3));
+tmp(:, :, 1) = occ_morpho_left*255;
+tmp(:, :, 2) = diff*255;
+imshow(tmp);
+subplot(1, 2, 2);
+diff = occ_median_left_matted - occ_median_left;
+tmp = uint8(zeros(height, width, 3));
+tmp(:, :, 1) = occ_median_left*255;
+tmp(:, :, 2) = diff*255;
+imshow(tmp);
