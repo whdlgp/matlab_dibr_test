@@ -14,11 +14,23 @@ calib_file_m = strrep(calib_file_txt,'.txt','.m');
 copyfile(calib_file_txt,calib_file_m);
 run(calib_file_m);
 
-% disparity map
-disparityMap_left = readpfm([dir_name 'disp0.pfm']);
-disparityMap_right = readpfm([dir_name 'disp1.pfm']);
+% disparity map with superpixel disparity estimation method
+[disparityMap_left, label_left, label_num_left, centroids_left, centroids_est_left, valid_set_left] ...
+= superpixel_disparity_left(imresize(im1, 0.25), imresize(im2, 0.25));
+[disparityMap_right, label_right, label_num_right, centroids_right, centroids_est_right, valid_set_right] ...
+= superpixel_disparity_right(imresize(im1, 0.25), imresize(im2, 0.25));
+
+disparityMap_left = imresize(disparityMap_left, 4)*4;
+disparityMap_right = imresize(disparityMap_right, 4)*4;
+
 depth_left = baseline * cam0(1) ./ (disparityMap_left);
 depth_right = baseline * cam1(1) ./ (disparityMap_right);
+
+% disparity map with GT data
+%disparityMap_left = readpfm([dir_name 'disp0.pfm']);
+%disparityMap_right = readpfm([dir_name 'disp1.pfm']);
+%depth_left = baseline * cam0(1) ./ (disparityMap_left);
+%depth_right = baseline * cam1(1) ./ (disparityMap_right);
 
 % Pixel coordinate to world coordinate (mm)
 fx = cam0(1, 1);
