@@ -2,36 +2,40 @@ clear;
 clc;
 close all;
 
+disp('Read image');
 % Stereo image from 
 % http://vision.middlebury.edu/stereo/data/2014/
 dir_name = 'Playroom-perfect\';
 im1 = imread([dir_name 'im0.png']);
 im2 = imread([dir_name 'im1.png']);
 
+disp('Prepare camera parameter');
 % Camera parameters
 calib_file_txt = [dir_name 'calib.txt'];
 calib_file_m = strrep(calib_file_txt,'.txt','.m');
 copyfile(calib_file_txt,calib_file_m);
 run(calib_file_m);
 
-% disparity map with superpixel disparity estimation method
-[disparityMap_left, label_left, label_num_left, centroids_left, centroids_est_left, valid_set_left] ...
-= superpixel_disparity_left(imresize(im1, 0.25), imresize(im2, 0.25));
-[disparityMap_right, label_right, label_num_right, centroids_right, centroids_est_right, valid_set_right] ...
-= superpixel_disparity_right(imresize(im1, 0.25), imresize(im2, 0.25));
+disp('Prepare disparity map');
+% % disparity map with superpixel disparity estimation method
+% [disparityMap_left, label_left, label_num_left, centroids_left, centroids_est_left, valid_set_left] ...
+% = superpixel_disparity_left(imresize(im1, 0.25), imresize(im2, 0.25));
+% [disparityMap_right, label_right, label_num_right, centroids_right, centroids_est_right, valid_set_right] ...
+% = superpixel_disparity_right(imresize(im1, 0.25), imresize(im2, 0.25));
+% 
+% disparityMap_left = imresize(disparityMap_left, 4)*4;
+% disparityMap_right = imresize(disparityMap_right, 4)*4;
+% 
+% depth_left = baseline * cam0(1) ./ (disparityMap_left);
+% depth_right = baseline * cam1(1) ./ (disparityMap_right);
 
-disparityMap_left = imresize(disparityMap_left, 4)*4;
-disparityMap_right = imresize(disparityMap_right, 4)*4;
-
+% disparity map with GT data
+disparityMap_left = readpfm([dir_name 'disp0.pfm']);
+disparityMap_right = readpfm([dir_name 'disp1.pfm']);
 depth_left = baseline * cam0(1) ./ (disparityMap_left);
 depth_right = baseline * cam1(1) ./ (disparityMap_right);
 
-% disparity map with GT data
-%disparityMap_left = readpfm([dir_name 'disp0.pfm']);
-%disparityMap_right = readpfm([dir_name 'disp1.pfm']);
-%depth_left = baseline * cam0(1) ./ (disparityMap_left);
-%depth_right = baseline * cam1(1) ./ (disparityMap_right);
-
+disp('Pixel coordinate to world coordinate (mm)');
 % Pixel coordinate to world coordinate (mm)
 fx = cam0(1, 1);
 fy = cam0(2, 2);
@@ -40,6 +44,7 @@ oy = cam0(2, 3);
 world_coord_left = d_pixel2world(depth_left, fx, fy, ox, oy);
 world_coord_right = d_pixel2world(depth_right, fx, fy, ox, oy);
 
+disp('Rotate and translate with R|T matrix');
 % Rotate and translate with R|T matrix
 alpha = 0;%deg2rad(10);
 beta = 0;%deg2rad(5);
@@ -64,10 +69,12 @@ tz_right = 0 + tz;
 [world_coord_rt_left, rot_mat_left, t_mat_left] = rotate_translate(world_coord_left, alpha_left, beta_left, gamma_left, tx_left, ty_left, tz_left);
 [world_coord_rt_right, rot_mat_right, t_mat_right] = rotate_translate(world_coord_right, alpha_right, beta_right, gamma_right, tx_right, ty_right, tz_right);
 
+disp('Find pixel position if project to image plane with R|T applied points');
 % Find pixel position if project to image plane with R|T applied points
 [im_another_point_left, depth_another_point_left] = d_world2pixel(world_coord_rt_left, im1, fx, fy, ox, oy);
 [im_another_point_right, depth_another_point_right] = d_world2pixel(world_coord_rt_right, im2, fx, fy, ox, oy);
 
+disp('Filtering');
 % dilate and erode depth map image
 se1 = offsetstrel('ball', 6, 6);
 se2 = offsetstrel('ball', 6, 6);
@@ -88,6 +95,7 @@ depth_another_point_median_right = medfilt2(depth_another_point_right, [7, 7]);
 depth_another_point_bilate_left = imbilatfilt(depth_another_point_left);
 depth_another_point_bilate_right = imbilatfilt(depth_another_point_right);
 
+disp('Reproject to world coordinate with modified depth map image');
 % Reproject to world coordinate with modified depth map image
 world_coord_morpho_left = d_pixel2world(depth_another_point_erod2_left, fx, fy, ox, oy);
 world_coord_median_left = d_pixel2world(depth_another_point_median_left, fx, fy, ox, oy);
@@ -95,6 +103,7 @@ world_coord_median_left = d_pixel2world(depth_another_point_median_left, fx, fy,
 world_coord_morpho_right = d_pixel2world(depth_another_point_erod2_right, fx, fy, ox, oy);
 world_coord_median_right = d_pixel2world(depth_another_point_median_right, fx, fy, ox, oy);
 
+disp('Rotate and translate to reverse direction(to origin)');
 % Rotate and translate to reverse direction(to origin)
 world_coord_rt_reverse_morpho_left = rotate_translate_reverse(world_coord_morpho_left, rot_mat_left, t_mat_left);
 world_coord_rt_reverse_median_left = rotate_translate_reverse(world_coord_median_left, rot_mat_left, t_mat_left);
@@ -102,6 +111,7 @@ world_coord_rt_reverse_median_left = rotate_translate_reverse(world_coord_median
 world_coord_rt_reverse_morpho_right = rotate_translate_reverse(world_coord_morpho_right, rot_mat_right, t_mat_right);
 world_coord_rt_reverse_median_right = rotate_translate_reverse(world_coord_median_right, rot_mat_right, t_mat_right);
 
+disp('Render with inverse mapping');
 % Render with inverse mapping
 im_another_point_inverse_morpho_left = render_inverse_mapping(world_coord_rt_reverse_morpho_left, im1, fx, fy, ox, oy);
 im_another_point_inverse_median_left = render_inverse_mapping(world_coord_rt_reverse_median_left, im1, fx, fy, ox, oy);
@@ -109,18 +119,21 @@ im_another_point_inverse_median_left = render_inverse_mapping(world_coord_rt_rev
 im_another_point_inverse_morpho_right = render_inverse_mapping(world_coord_rt_reverse_morpho_right, im2, fx, fy, ox, oy);
 im_another_point_inverse_median_right = render_inverse_mapping(world_coord_rt_reverse_median_right, im2, fx, fy, ox, oy);
 
+disp('Find occluded area');
 % Find occluded area
 occ_morpho_left = depth_another_point_erod2_left <= 10;
 occ_morpho_right = depth_another_point_erod2_right <= 10;
 occ_median_left = depth_another_point_median_left <= 10;
 occ_median_right = depth_another_point_median_right <= 10;
 
+disp('Expend(matting) occluded area');
 % Expend(matting) occluded area
 occ_morpho_left_matted = imdilate(occ_morpho_left, [1, 1, 0]);
 occ_morpho_right_matted = imdilate(occ_morpho_right, [0, 1, 1]);
 occ_median_left_matted = imdilate(occ_median_left, [1, 1, 0]);
 occ_median_right_matted = imdilate(occ_median_right, [0, 1, 1]);
 
+disp('alpha blending');
 % alpha blending
 t_l = [0, 0, 0]';
 t_r = [baseline, 0, 0]';
@@ -140,6 +153,7 @@ blended_image_median = alpha_blending(im_another_point_inverse_median_left...
 
 quality_check = 0;
 if quality_check == 1
+    disp('quality_check');
     % PSNR
     MSR_forward = sum(sum(sum((im2 - im_another_point_left).^2)))/(width*height);
     MSR_morpho = sum(sum(sum((im2 - im_another_point_inverse_morpho_left).^2)))/(width*height);

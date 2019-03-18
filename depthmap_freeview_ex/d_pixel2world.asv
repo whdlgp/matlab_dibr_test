@@ -1,0 +1,15 @@
+function world_coord = d_pixel2world(depth, fx, fy, ox, oy)
+    [height, width] = size(depth);
+    world_coord = zeros(3, width*height);
+    
+    x_im = 1:width;
+    y_im = 1:height;
+    [X_IM, Y_IM] = meshgrid(x_im, y_im);
+    X_IM = reshape(X_IM, [1, width*height]);
+    Y_IM = reshape(Y_IM, [1, width*height]);
+    idx = (Y_IM - 1).*width + X_IM;
+            
+    world_coord(1, idx) = (X_IM(idx2) - ox).*(depth(y_im, x_im)/fx);
+    world_coord(2, idx) = (Y_IM(idx2) - oy).*(depth(y_im, x_im)/fy);
+    world_coord(3, idx) = depth(Y_IM(idx2), X_IM(idx2));
+end
